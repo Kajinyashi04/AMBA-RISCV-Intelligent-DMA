@@ -24,6 +24,7 @@ module tb_soc();
         #20 rst_n = 1;
 
         $display("--- BẬT NGUỒN SOC ---");
+        $display("Lenh dau tien tai RAM: %h", uut.sram_memory[0]); // Chèn dòng này
         $display("CPU dang doc lenh tu RAM va cau hinh DMA...");
 
         // Chờ CPU và DMA làm việc. (Giới hạn tối đa 5000 clock để tránh bị treo vô tận)

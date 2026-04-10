@@ -1,0 +1,134 @@
+`timescale 1ns/1ps
+
+module soc_top (
+    input wire clk,
+    input wire rst_n,
+    
+    // Cổng debug báo hiệu hoàn thành
+    output wire debug_done
+);
+
+    // =========================================================================
+    // 1. KHAI BÁO TẤT CẢ CÁC ĐƯỜNG DÂY (WIRES)
+    // =========================================================================
+    
+    // Nhóm dây CPU (Master 0)
+    wire [31:0] cpu_addr;
+    wire        cpu_valid;
+    wire [3:0]  cpu_wstrb;      
+    wire        cpu_we;         
+    assign cpu_we = |cpu_wstrb; 
+    wire [31:0] cpu_wdata;
+    wire [31:0] cpu_rdata;
+    wire        cpu_ready;
+
+    // Nhóm dây DMA Master (Master 1)
+    wire [31:0] dma_m_addr;        // Dây nối vào Arbiter
+    wire        dma_m_valid;
+    wire        dma_m_we;
+    wire [31:0] dma_m_wdata;
+    wire [31:0] dma_m_rdata;
+    wire        dma_m_ready;
+
+    // Dây nội bộ để tách biệt Đọc/Ghi của DMA
+    wire [31:0] dma_m_addr_read;
+    wire [31:0] dma_m_addr_write;
+    wire        dma_m_valid_read;
+    wire        dma_m_valid_write;
+
+    // Nhóm dây RAM (Slave 0)
+    wire [31:0] ram_addr;
+    wire        ram_valid;
+    wire        ram_we;
+    wire [31:0] ram_wdata;
+    wire [31:0] ram_rdata;
+    wire        ram_ready;
+
+    // Nhóm dây DMA Config (Slave 1)
+    wire [31:0] dma_s_addr;
+    wire        dma_s_valid;
+    wire        dma_s_we;
+    wire [31:0] dma_s_wdata;
+    wire [31:0] dma_s_rdata;
+    wire        dma_s_ready;
+
+    // =========================================================================
+    // 2. LOGIC ĐIỀU PHỐI VÀ BẮT TAY (ASSIGNMENTS)
+    // =========================================================================
+    
+    // Phân xử địa chỉ DMA: Chọn Write Address nếu đang ghi, ngược lại chọn Read Address
+    assign dma_m_addr  = dma_m_valid_write ? dma_m_addr_write : dma_m_addr_read;
+    assign dma_m_valid = dma_m_valid_read | dma_m_valid_write;
+    assign dma_m_we    = dma_m_valid_write;
+
+    // Phản hồi ready cho Slave 1 (DMA Config)
+    reg s1_ready_reg;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) s1_ready_reg <= 1'b0;
+        else s1_ready_reg <= dma_s_valid;
+    end
+    assign dma_s_ready = s1_ready_reg;
+
+    // Tín hiệu debug báo hoàn thành (DMA Status = 2)
+    assign debug_done = (dma_s_rdata == 32'h2);
+
+    // =========================================================================
+    // 3. KẾT NỐI CÁC KHỐI IP (INSTANTIATIONS)
+    // =========================================================================
+
+    // CPU RISC-V
+    picorv32 #( .PROGADDR_RESET(32'h0000_0000) ) cpu (
+        .clk      (clk),
+        .resetn   (rst_n),
+        .mem_valid(cpu_valid),
+        .mem_ready(cpu_ready),
+        .mem_addr (cpu_addr),
+        .mem_wdata(cpu_wdata),
+        .mem_wstrb(cpu_wstrb), 
+        .mem_rdata(cpu_rdata)
+    );
+
+    // Bus Arbiter (Bộ giải mã địa chỉ và phân xử ưu tiên)
+    bus_arbiter arbiter (
+        .clk(clk), .rst_n(rst_n),
+        .m0_addr(cpu_addr), .m0_valid(cpu_valid), .m0_we(cpu_we), .m0_wdata(cpu_wdata), .m0_rdata(cpu_rdata), .m0_ready(cpu_ready),
+        .m1_addr(dma_m_addr), .m1_valid(dma_m_valid), .m1_we(dma_m_we), .m1_wdata(dma_m_wdata), .m1_rdata(dma_m_rdata), .m1_ready(dma_m_ready),
+        .s0_addr(ram_addr), .s0_valid(ram_valid), .s0_we(ram_we), .s0_wdata(ram_wdata), .s0_rdata(ram_rdata), .s0_ready(ram_ready),
+        .s1_addr(dma_s_addr), .s1_valid(dma_s_valid), .s1_we(dma_s_we), .s1_wdata(dma_s_wdata), .s1_rdata(dma_s_rdata), .s1_ready(dma_s_ready)
+    );
+
+    // Intelligent DMA
+    dma_controller dma_inst (
+        .clk(clk), .rst_n(rst_n),
+        // Slave (Cấu hình)
+        .s_axi_awaddr(dma_s_addr), .s_axi_awvalid(dma_s_valid && dma_s_we), .s_axi_awready(), 
+        .s_axi_wdata(dma_s_wdata), .s_axi_wvalid(dma_s_valid && dma_s_we), .s_axi_wready(),
+        .s_axi_rdata(dma_s_rdata), .s_axi_araddr(dma_s_addr),
+        // Master (Thực thi)
+        .m_axi_araddr(dma_m_addr_read), .m_axi_arvalid(dma_m_valid_read), .m_axi_arready(dma_m_ready), .m_axi_rdata(dma_m_rdata),
+        .m_axi_awaddr(dma_m_addr_write), .m_axi_awvalid(dma_m_valid_write), .m_axi_awready(dma_m_ready), .m_axi_wdata(dma_m_wdata), .m_axi_wvalid(dma_m_valid_write)
+    );
+
+    // On-chip RAM (SRAM)
+    reg [31:0] sram_memory [0:1023]; 
+    reg [31:0] ram_rdata_reg;
+    reg        ram_ready_reg;
+
+    initial begin
+        $readmemh("../sw/firmware.hex", sram_memory);
+    end
+
+    always @(posedge clk) begin
+        if (ram_valid) begin
+            if (ram_we) sram_memory[ram_addr[11:2]] <= ram_wdata;
+            else        ram_rdata_reg <= sram_memory[ram_addr[11:2]];
+            ram_ready_reg <= 1'b1;
+        end else begin
+            ram_ready_reg <= 1'b0;
+        end
+    end
+    
+    assign ram_rdata = ram_rdata_reg;
+    assign ram_ready = ram_ready_reg;
+
+endmodule
