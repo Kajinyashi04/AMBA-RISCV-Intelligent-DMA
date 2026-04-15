@@ -110,13 +110,13 @@ module soc_top (
     );
 
     // On-chip RAM (SRAM)
-    reg [31:0] sram_memory [0:63]; // Lower to 64s line (256bytes) instead of 1024 lines
+    reg [31:0] sram_memory [0:1023]; 
     reg [31:0] ram_rdata_reg;
     reg        ram_ready_reg;
 
-   // initial begin
-   //     $readmemh("../sw/firmware.hex", sram_memory);
-   // end
+    initial begin
+        $readmemh("../sw/firmware.hex", sram_memory);
+    end
 
     always @(posedge clk) begin
         if (ram_valid) begin

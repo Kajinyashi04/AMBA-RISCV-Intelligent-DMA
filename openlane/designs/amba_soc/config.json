@@ -1,0 +1,22 @@
+{
+    "DESIGN_NAME": "soc_top",
+    "VERILOG_FILES": [
+        "dir::src/soc_top.v",
+        "dir::src/picorv32.v",
+        "dir::src/bus_arbiter.v",
+        "dir::src/dma_controller.v"
+    ],
+    "CLOCK_PORT": "clk",
+    "CLOCK_PERIOD": 25,
+    "FP_CORE_UTIL": 35,
+    "RT_MAX_LAYER": "met4",
+    "SYNTH_STRATEGY": "DELAY 0",
+    "FP_PDN_VPITCH": 100,
+    "FP_PDN_HPITCH": 100,
+    "FP_SIZING": "absolute",
+    "DIE_AREA": "0 0 1600 1600",
+    "PL_TARGET_DENSITY": 0.4,
+    "VDD_NETS": ["vccd1"],
+    "GND_NETS": ["vssd1"],
+    "DIODE_INSERTION_STRATEGY": 3
+}
