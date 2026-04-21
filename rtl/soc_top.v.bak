@@ -88,7 +88,7 @@ module soc_top (
         .mem_rdata(cpu_rdata)
     );
 
-    // Bus Arbiter
+    // Bus Arbiter (Bộ giải mã địa chỉ và phân xử ưu tiên)
     bus_arbiter arbiter (
         .clk(clk), .rst_n(rst_n),
         .m0_addr(cpu_addr), .m0_valid(cpu_valid), .m0_we(cpu_we), .m0_wdata(cpu_wdata), .m0_rdata(cpu_rdata), .m0_ready(cpu_ready),

@@ -2,7 +2,7 @@ module dma_controller (
     input  wire        clk,
     input  wire        rst_n,
 
-    // -- Slave Interface (CPU -> DMA) --
+    //Slave Interface (CPU -> DMA)
     input  wire [31:0] s_axi_awaddr,
     input  wire        s_axi_awvalid,
     output wire        s_axi_awready,
@@ -12,7 +12,7 @@ module dma_controller (
     output wire [31:0] s_axi_rdata,
     input  wire [31:0] s_axi_araddr,
 
-    // -- Master Interface (DMA -> RAM) --
+    //Master Interface (DMA -> RAM)
     output reg  [31:0] m_axi_araddr,
     output wire        m_axi_arvalid,
     input  wire        m_axi_arready,
@@ -25,12 +25,12 @@ module dma_controller (
     output wire        m_axi_wvalid
 );
 
-    // Thanh ghi cấu hình
+    // Registers to hold configuration and status
     reg [31:0] reg_src, reg_dst, reg_len;
     reg [1:0]  reg_status; // 0:Idle, 1:Busy, 2:Done
     reg        dma_start_pulse;
 
-    // Logic Slave: CPU ghi vào ngăn kéo
+    // Logic Slave
     assign s_axi_awready = 1'b1;
     assign s_axi_wready  = 1'b1;
     always @(posedge clk or negedge rst_n) begin
@@ -49,7 +49,7 @@ module dma_controller (
     end
     assign s_axi_rdata = (s_axi_araddr[3:0] == 4'hC) ? {30'b0, reg_status} : 32'h0;
 
-    // Máy trạng thái DMA
+    // FSM 
     localparam IDLE=0, READ=1, WRITE=2;
     reg [1:0] state;
     reg [31:0] count;
@@ -82,13 +82,13 @@ module dma_controller (
                     reg_status <= 2'b01; // Busy
                 end
                 READ: if (m_axi_arready) begin
-                    data_buf <= processed; // Xử lý ảnh ngay khi đọc
+                    data_buf <= processed;
                     state <= WRITE;
                 end
                 WRITE: if (m_axi_awready) begin
                     if (count <= 4) begin
                         state <= IDLE;
-                        reg_status <= 2'b10; // Done!
+                        reg_status <= 2'b10; // Done
                     end else begin
                         m_axi_araddr <= m_axi_araddr + 4;
                         m_axi_awaddr <= m_axi_awaddr + 4;

@@ -1,2 +1,16 @@
-run/
-*.vcd
+#For Quartus
+db/
+incremental_db/
+output_files/
+simulation/
+*.jdi
+*.qws
+*.sld
+*.rpt
+*.summary
+
+#For ModelSim
+work/
+transcript
+*.wlf
+modelsim.ini
