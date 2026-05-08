@@ -18,7 +18,7 @@ module tb_soc();
     initial begin
         $dumpfile("soc_wave.vcd");
         $dumpvars(0, tb_soc);
-
+        $readmemh("../sw/firmware.hex", uut.sram_memory);
         // Bật nguồn
         clk = 0; rst_n = 0;
         #20 rst_n = 1;
