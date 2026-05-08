@@ -77,7 +77,20 @@ module soc_top (
     // =========================================================================
 
     // CPU RISC-V
-    picorv32 #( .PROGADDR_RESET(32'h0000_0000) ) cpu (
+    // picorv32 #( .PROGADDR_RESET(32'h0000_0000) ) cpu (
+    //     .clk      (clk),
+    //     .resetn   (rst_n),
+    //     .mem_valid(cpu_valid),
+    //     .mem_ready(cpu_ready),
+    //     .mem_addr (cpu_addr),
+    //     .mem_wdata(cpu_wdata),
+    //     .mem_wstrb(cpu_wstrb), 
+    //     .mem_rdata(cpu_rdata)
+    // );
+
+    my_riscv_core #(
+        .PROGADDR_RESET(32'h0000_0000)
+    ) cpu (
         .clk      (clk),
         .resetn   (rst_n),
         .mem_valid(cpu_valid),
@@ -110,7 +123,7 @@ module soc_top (
     );
 
     // On-chip RAM (SRAM)
-    reg [31:0] sram_memory [0:63]; // Lower to 64s line (256bytes) instead of 1024 lines
+    reg [31:0] sram_memory [0:1023]; 
     reg [31:0] ram_rdata_reg;
     reg        ram_ready_reg;
 
