@@ -59,7 +59,7 @@ module bus_arbiter (
     assign s0_valid = bus_valid && sel_s0;
     assign s1_valid = bus_valid && sel_s1;
 
-    // Send address and data to the selected slave
+    // Send address and data to both slaves (but only the selected slave will respond)
     assign s0_addr  = bus_addr;
     assign s0_we    = bus_we;
     assign s0_wdata = bus_wdata;

@@ -1,0 +1,4 @@
+To,Direction,Location
+clk,Input,PIN_Y2
+rst_n,Input,PIN_M23
+debug_done,Output,PIN_G19
