@@ -4,13 +4,9 @@ module soc_top (
     input wire clk,
     input wire rst_n,
     
-    // Cổng debug báo hiệu hoàn thành
     output wire debug_done
 );
 
-    // =========================================================================
-    // 1. KHAI BÁO TẤT CẢ CÁC ĐƯỜNG DÂY (WIRES)
-    // =========================================================================
     
     // Nhóm dây CPU (Master 0)
     wire [31:0] cpu_addr;
@@ -23,7 +19,7 @@ module soc_top (
     wire        cpu_ready;
 
     // Nhóm dây DMA Master (Master 1)
-    wire [31:0] dma_m_addr;        // Dây nối vào Arbiter
+    wire [31:0] dma_m_addr;        
     wire        dma_m_valid;
     wire        dma_m_we;
     wire [31:0] dma_m_wdata;
@@ -51,10 +47,6 @@ module soc_top (
     wire [31:0] dma_s_wdata;
     wire [31:0] dma_s_rdata;
     wire        dma_s_ready;
-
-    // =========================================================================
-    // 2. LOGIC ĐIỀU PHỐI VÀ BẮT TAY (ASSIGNMENTS)
-    // =========================================================================
     
     // Phân xử địa chỉ DMA: Chọn Write Address nếu đang ghi, ngược lại chọn Read Address
     assign dma_m_addr  = dma_m_valid_write ? dma_m_addr_write : dma_m_addr_read;
@@ -72,21 +64,6 @@ module soc_top (
     // Tín hiệu debug báo hoàn thành (DMA Status = 2)
     assign debug_done = (dma_s_rdata == 32'h2);
 
-    // =========================================================================
-    // 3. KẾT NỐI CÁC KHỐI IP (INSTANTIATIONS)
-    // =========================================================================
-
-    // CPU RISC-V
-    // picorv32 #( .PROGADDR_RESET(32'h0000_0000) ) cpu (
-    //     .clk      (clk),
-    //     .resetn   (rst_n),
-    //     .mem_valid(cpu_valid),
-    //     .mem_ready(cpu_ready),
-    //     .mem_addr (cpu_addr),
-    //     .mem_wdata(cpu_wdata),
-    //     .mem_wstrb(cpu_wstrb), 
-    //     .mem_rdata(cpu_rdata)
-    // );
 
     my_riscv_core #(
         .PROGADDR_RESET(32'h0000_0000)
@@ -127,9 +104,6 @@ module soc_top (
     reg [31:0] ram_rdata_reg;
     reg        ram_ready_reg;
 
-   // initial begin
-   //     $readmemh("../sw/firmware.hex", sram_memory);
-   // end
 
     always @(posedge clk) begin
         if (ram_valid) begin
